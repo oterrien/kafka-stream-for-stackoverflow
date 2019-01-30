@@ -1,0 +1,45 @@
+server:
+  port: 18312
+
+logging:
+  level:
+    root: INFO
+    com.ote.*: DEBUG
+    kafka.*: WARN
+    org.springframework.*: INFO
+    org.apache.kafka.*: ERROR
+
+spring:
+  application:
+    name: file-consumer
+  cloud:
+    stream:
+      kafka:
+        binder:
+          type: kafka
+          brokers: localhost
+          defaultBrokerPort: 29092
+          defaultZkPort: 32181
+        bindings:
+          input:
+            consumer:
+              concurrency: 1
+              autoCommitOffset: false
+              ackEachRecord: true
+              configuration:
+                max.poll.records: 1
+      bindings:
+        input:
+          binder: kafka
+          destination: files.test
+          group: ${spring.application.name}
+          contentType: 'text/plain'
+        output:
+          binder: kafka
+          destination: files.test
+          contentType: 'text/plain'
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: files_test

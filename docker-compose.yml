@@ -1,0 +1,55 @@
+version: "3.3"
+
+services:
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:5.1.0
+    container_name: zookeeper4Test
+    hostname: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 32181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "32181:32181"
+
+  # https://github.com/confluentinc/kafka-streams-examples/blob/5.1.0-post/docker-compose.yml
+  kafka:
+    image: confluentinc/cp-kafka:5.1.0
+    container_name: kafka4Test
+    hostname: kafka
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:32181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:29092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    depends_on:
+      - zookeeper
+
+  # Used to create topics if not exists
+  kafka-create-topics:
+    image: confluentinc/cp-kafka:5.1.0
+    depends_on:
+      - kafka
+    command: "bash -c 'echo Waiting for Topics to be created... && \
+                       kafka-topics --delete --topic files.test --if-exists --zookeeper zookeeper:32181 && \
+                       kafka-topics --create --topic files.test --if-not-exists --zookeeper zookeeper:32181 --partitions 1 --replication-factor 1 && \
+                       echo Topics created'"
+    environment:
+      # The following settings are listed here only to satisfy the image's requirements.
+      # We override the image's `command` anyways, hence this container will not start a broker.
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:32181
+
+  mongodb:
+    image: mongo:3.4.19
+    container_name: mongodb4Test
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+    ports:
+      - "27017:27017"
